@@ -68,7 +68,7 @@ async def init_invite_codes():
     
     invite_codes_data = [
         {
-            "code": "PRO2024",
+            "code": "PRO2025",
             "target_level": UserLevel.PRO,
             "max_usage": 100,
             "valid_from": datetime.utcnow(),
