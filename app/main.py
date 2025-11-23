@@ -5,12 +5,13 @@ from contextlib import asynccontextmanager
 import logging
 from app.config import get_settings
 from app.database import init_db, close_db
-from app.auth.scheduler import job_scheduler
+from app.scheduler import job_scheduler
 from app.auth.router import router as auth_router
 from app.services.piano.router import router as piano_router
 from app.services.spleeter.router import router as spleeter_router
 from app.services.yourmt3.router import router as yourmt3_router
-from app.recharge.router import router as recharge_router
+from app.recharge.stripe_router import router as stripe_router
+from app.recharge.wechat.router import router as wechat_router
 from app.invite_code.router import router as code_router
 
 # 配置日志
@@ -31,7 +32,7 @@ async def lifespan(app: FastAPI):
     # 1. 初始化数据库
     try:
         logger.info("初始化数据库...")
-        await init_db()
+        #await init_db()
         logger.info("数据库初始化完成")
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
@@ -110,7 +111,8 @@ app.include_router(piano_router)
 app.include_router(spleeter_router)
 app.include_router(yourmt3_router)
 app.include_router(code_router)
-app.include_router(recharge_router)
+app.include_router(stripe_router)
+app.include_router(wechat_router)
 
 
 @app.get("/")

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Integer, DateTime, Float, JSON, UniqueConstraint, Index, Boolean, ForeignKey, Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -43,7 +44,7 @@ class User(Base):
     __tablename__ = "user_info"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, unique=True, nullable=False, index=True, comment="Supabase Auth用户ID")
+    user_id = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True, comment="Supabase Auth用户ID")
     email = Column(String, unique=True, nullable=False, index=True, comment="邮箱")
     user_level = Column(SQLEnum(UserLevel), default=UserLevel.FREE, nullable=False, comment="用户等级")
     credits = Column(Float, default=10.0, nullable=False, comment="当前余额")
@@ -90,7 +91,7 @@ class InviteCodeUsage(Base):
     __tablename__ = "invite_code_usage"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_info.user_id"), nullable=False)
     invite_code_id = Column(Integer, ForeignKey("invite_codes.id"), nullable=False)
     used_at = Column(DateTime, default=datetime.utcnow)
     
@@ -105,7 +106,7 @@ class RechargeRecord(Base):
     __tablename__ = "recharge_records"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_info.user_id"), nullable=False, index=True)
     amount = Column(Float, nullable=False, comment="充值金额")
     payment_method = Column(SQLEnum(PaymentMethod), nullable=False, comment="支付方式")
     payment_status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False, comment="支付状态")
@@ -126,7 +127,7 @@ class ConsumptionRecord(Base):
     __tablename__ = "consumption_records"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_info.user_id"), nullable=False, index=True)
     processing_record_id = Column(Integer, ForeignKey("processing_records.id"), nullable=False)
     service_type = Column(String, nullable=False, comment="服务类型")
     audio_duration = Column(Float, nullable=False, comment="音频时长(秒)")
@@ -148,7 +149,7 @@ class UserProcessingHistory(Base):
     __tablename__ = "user_processing_history"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_info.user_id"), nullable=False, index=True)
     processing_record_id = Column(Integer, ForeignKey("processing_records.id"))
     consumption_record_id = Column(Integer, ForeignKey("consumption_records.id"))
     original_filename = Column(String, nullable=False, comment="原始文件名")

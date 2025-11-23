@@ -1,19 +1,21 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models import User, ServicePricing, ConsumptionRecord
 from math import ceil
 import logging
+from app.config import get_settings
+from app.models import User, ServicePricing, ConsumptionRecord
+
 
 logger = logging.getLogger(__name__)
-
+settings = get_settings()
 
 class BillingService:
     
     # 默认定价（如果数据库中没有配置）
     DEFAULT_PRICING = {
-        'piano': {'free': 2.0, 'pro': 1.5},
-        'spleeter': {'free': 3.0, 'pro': 2.25},
-        'yourmt3': {'free': 4.0, 'pro': 3.0}
+        'piano': {'free': settings.piano_price_free, 'pro': settings.piano_price_pro},
+        'spleeter': {'free': settings.spleeter_price_free, 'pro': settings.spleeter_price_pro},
+        'yourmt3': {'free': settings.yourmt3_price_free, 'pro': settings.yourmt3_price_pro}
     }
     
     async def get_pricing(
@@ -111,8 +113,6 @@ class BillingService:
         
         old_balance = user.credits
         user.credits -= amount
-        await db.commit()
-        await db.refresh(user)
         
         logger.info(f"扣费成功: 用户={user.email}, {old_balance} - {amount} = {user.credits}")
     
@@ -153,14 +153,15 @@ class BillingService:
         
         logger.info(f"创建消费记录: ID={record.id}, 用户={user_id}, 费用={credits_cost}")
         return record
-    
+
     async def process_billing(
         self,
         db: AsyncSession,
         user: User,
         processing_record_id: int,
         service_type: str,
-        audio_duration: float
+        audio_duration: float,
+        credits_cost: float
     ) -> ConsumptionRecord:
         """
         完整的计费流程（扣费 + 创建记录）
@@ -171,19 +172,12 @@ class BillingService:
             processing_record_id: 处理记录ID
             service_type: 服务类型
             audio_duration: 音频时长
+            credits_cost: 已计算的费用（由调用方提供）
             
         Returns:
             消费记录
         """
-        # 获取定价
-        price = await self.get_pricing(db, service_type, user.user_level.value)
-        
-        # 计算费用
-        credits_cost = self.calculate_credits(audio_duration, price)
-        
-        # 检查余额
-        if not await self.check_balance(user, credits_cost):
-            raise Exception(f"余额不足，当前余额: {user.credits}, 需要: {credits_cost}")
+        logger.info(f"开始计费: 用户={user.email}, 服务={service_type}, 费用={credits_cost}")
         
         # 扣费
         await self.deduct_credits(db, user, credits_cost)

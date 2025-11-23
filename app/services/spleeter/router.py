@@ -4,8 +4,8 @@ from sqlalchemy import select, and_
 from datetime import datetime
 import logging
 from app.database import get_db
-from app.auth import get_current_active_user
-from app.models import User, ProcessingRecord, UserProcessingHistory
+from app.get_user import get_user_by_id
+from app.models import ProcessingRecord, UserProcessingHistory
 from app.schemas import SpleeterResponse, SpleeterFileInfo
 from app.services.s3_service import s3_service
 from app.services.audio_utils import get_audio_duration
@@ -20,12 +20,12 @@ router = APIRouter(prefix="/api/spleeter", tags=["Spleeter"])
 
 @router.post("/separate", response_model=SpleeterResponse)
 async def separate_audio(
+    user_id: str,
     file: UploadFile = File(..., description="音频文件 (MP3/WAV/M4A)"),
     stems: int = Form(default=2, description="音轨数量: 2, 4, 或 5"),
     format: str = Form(default="mp3", description="输出格式"),
     bitrate: str = Form(default="192k", description="比特率"),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     音频分离 API (人声/伴奏分离)（含计费）
@@ -35,6 +35,8 @@ async def separate_audio(
     - 自动计算费用并扣费
     - 如果该文件使用相同参数处理过，将直接返回缓存结果（仍需扣费）
     """
+    current_user = await get_user_by_id(user_id, db)
+
     logger.info(f"========== 开始音频分离请求 ==========")
     logger.info(f"用户: {current_user.email}, 等级: {current_user.user_level.value}, 余额: {current_user.credits}")
     logger.info(f"文件名: {file.filename}, stems: {stems}, format: {format}, bitrate: {bitrate}")
@@ -77,7 +79,7 @@ async def separate_audio(
         # 7. 创建用户处理历史记录
         logger.info("创建用户处理历史记录...")
         user_history = UserProcessingHistory(
-            user_id=current_user.id,
+            user_id=current_user.user_id,
             original_filename=file.filename,
             service_type="spleeter",
             stems=stems,
@@ -115,7 +117,8 @@ async def separate_audio(
                     user=current_user,
                     processing_record_id=existing_record.id,
                     service_type="spleeter",
-                    audio_duration=audio_duration
+                    audio_duration=audio_duration,
+                    credits_cost=credits_cost
                 )
                 
                 # 更新用户处理历史
@@ -241,7 +244,8 @@ async def separate_audio(
                     user=current_user,
                     processing_record_id=record.id,
                     service_type="spleeter",
-                    audio_duration=audio_duration
+                    audio_duration=audio_duration,
+                    credits_cost=credits_cost
                 )
                 
                 # 更新处理记录
@@ -308,9 +312,3 @@ async def separate_audio(
             await db.commit()
         
         raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
-
-
-@router.get("/health")
-async def health_check():
-    """健康检查"""
-    return {"status": "healthy", "service": "spleeter"}

@@ -4,8 +4,8 @@ from sqlalchemy import select
 from datetime import datetime
 import logging
 from app.database import get_db
-from app.auth import get_current_active_user
-from app.models import User, ProcessingRecord, UserProcessingHistory
+from app.get_user import get_user_by_id
+from app.models import ProcessingRecord, UserProcessingHistory
 from app.schemas import PianoTransResponse
 from app.services.s3_service import s3_service 
 from app.services.audio_utils import get_audio_duration
@@ -20,9 +20,9 @@ router = APIRouter(prefix="/api/piano", tags=["Piano Transcription"])
 
 @router.post("/transcribe", response_model=PianoTransResponse)
 async def transcribe_piano(
+    user_id: str,
     file: UploadFile = File(..., description="音频文件 (MP3/WAV/M4A)"),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     钢琴扒谱 API（含计费）
@@ -31,6 +31,8 @@ async def transcribe_piano(
     - 自动计算费用并扣费
     - 如果该文件之前已处理过，将直接返回缓存结果（仍需扣费）
     """
+    current_user = await get_user_by_id(user_id, db)
+
     logger.info(f"========== 开始钢琴扒谱请求 ==========")
     logger.info(f"用户: {current_user.email}, 等级: {current_user.user_level.value}, 余额: {current_user.credits}")
     logger.info(f"文件名: {file.filename}, Content-Type: {file.content_type}")
@@ -68,7 +70,7 @@ async def transcribe_piano(
         # 6. 创建用户处理历史记录
         logger.info("创建用户处理历史记录...")
         user_history = UserProcessingHistory(
-            user_id=current_user.id,
+            user_id=current_user.user_id,
             original_filename=file.filename,
             service_type="piano",
             status="processing",
@@ -102,7 +104,8 @@ async def transcribe_piano(
                     user=current_user,
                     processing_record_id=existing_record.id,
                     service_type="piano",
-                    audio_duration=audio_duration
+                    audio_duration=audio_duration,
+                    credits_cost=credits_cost
                 )
                 
                 # 更新用户处理历史
@@ -211,7 +214,8 @@ async def transcribe_piano(
                     user=current_user,
                     processing_record_id=record.id,
                     service_type="piano",
-                    audio_duration=audio_duration
+                    audio_duration=audio_duration,
+                    credits_cost=credits_cost
                 )
                 
                 # 更新处理记录
@@ -272,9 +276,3 @@ async def transcribe_piano(
             await db.commit()
         
         raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
-
-
-@router.get("/health")
-async def health_check():
-    """健康检查"""
-    return {"status": "healthy", "service": "piano"}
