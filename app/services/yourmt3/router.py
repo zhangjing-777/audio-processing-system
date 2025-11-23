@@ -1,15 +1,17 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from datetime import datetime
+import logging
 from app.database import get_db
 from app.auth import get_current_active_user
 from app.models import User, ProcessingRecord, UserProcessingHistory
 from app.schemas import YourMT3Response
-from app.services import s3_service, yourmt3_service
+from app.services.s3_service import s3_service
 from app.services.audio_utils import get_audio_duration
 from app.services.billing_service import billing_service
-from datetime import datetime
-import logging
+from app.services.yourmt3.service import yourmt3_service
+
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models import User, ServicePricing, ConsumptionRecord, UserProcessingHistory
+from app.models import User, ServicePricing, ConsumptionRecord
 from math import ceil
 import logging
 
@@ -191,7 +191,7 @@ class BillingService:
         # 创建消费记录
         consumption_record = await self.create_consumption_record(
             db=db,
-            user_id=user.id,
+            user_id=user.user_id,
             processing_record_id=processing_record_id,
             service_type=service_type,
             audio_duration=audio_duration,

@@ -9,33 +9,12 @@ from app.schemas import (
     UseInviteCodeRequest,
     UseInviteCodeResponse
 )
-from app.services.invite_service import invite_service
+from app.invite_code.service import invite_service
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/user", tags=["User"])
-
-
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_info(
-    current_user: User = Depends(get_current_active_user)
-):
-    """获取当前用户信息"""
-    logger.info(f"获取用户信息: {current_user.email}")
-    return current_user
-
-
-@router.get("/credits", response_model=UserCreditsResponse)
-async def get_user_credits(
-    current_user: User = Depends(get_current_active_user)
-):
-    """查询当前余额"""
-    logger.info(f"查询余额: {current_user.email}, credits={current_user.credits}")
-    return {
-        "credits": current_user.credits,
-        "user_level": current_user.user_level
-    }
 
 
 @router.post("/use-invite-code", response_model=UseInviteCodeResponse)

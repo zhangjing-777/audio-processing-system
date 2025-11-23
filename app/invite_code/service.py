@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class InviteService:
-    
     async def validate_invite_code(
         self,
         db: AsyncSession,
@@ -22,7 +21,7 @@ class InviteService:
             (是否有效, 错误信息)
         """
         # 检查用户是否已使用过邀请码
-        if user.invite_code_used:
+        if user.invite_code_used: 
             return False, "您已经使用过邀请码"
         
         # 检查用户是否已经是 Pro
@@ -87,7 +86,7 @@ class InviteService:
             
             # 创建使用记录
             usage = InviteCodeUsage(
-                user_id=user.id,
+                user_id=user.user_id,
                 invite_code_id=invite_code.id
             )
             db.add(usage)

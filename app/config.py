@@ -22,15 +22,6 @@ class Settings(BaseSettings):
     runpod_spleeter_endpoint: str
     runpod_yourmt3_endpoint: str
     
-    # Supabase 配置
-    supabase_url: str
-    supabase_anon_key: str
-    supabase_service_role_key: str
-    
-    # JWT 配置
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
-    
     # Stripe 配置
     stripe_secret_key: str = ""
     stripe_publishable_key: str = ""
@@ -43,9 +34,6 @@ class Settings(BaseSettings):
     wechat_cert_path: str = ""
     wechat_key_path: str = ""
     
-    # 计费配置
-    default_credits: float = 10.0
-    
     # 定价配置（默认值，可通过数据库覆盖）
     piano_price_free: float = 2.0
     piano_price_pro: float = 1.5
@@ -53,17 +41,6 @@ class Settings(BaseSettings):
     spleeter_price_pro: float = 2.25
     yourmt3_price_free: float = 4.0
     yourmt3_price_pro: float = 3.0
-    
-    # 同步配置
-    sync_interval_minutes: int = 5
-    
-    # 文件大小限制（MB）
-    max_file_size_free: int = 50
-    max_file_size_pro: int = 200
-    
-    # API 限流配置
-    rate_limit_free: int = 10      # 每小时
-    rate_limit_pro: int = 100      # 每小时
     
     # 应用配置
     app_name: str = "Audio Processing API"

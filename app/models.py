@@ -40,20 +40,18 @@ class ProcessingStatus(str, enum.Enum):
 # 用户表
 class User(Base):
     """用户表"""
-    __tablename__ = "users"
+    __tablename__ = "user_info"
     
     id = Column(Integer, primary_key=True, index=True)
-    supabase_user_id = Column(String, unique=True, nullable=False, index=True, comment="Supabase Auth用户ID")
+    user_id = Column(String, unique=True, nullable=False, index=True, comment="Supabase Auth用户ID")
     email = Column(String, unique=True, nullable=False, index=True, comment="邮箱")
-    username = Column(String, comment="用户名")
     user_level = Column(SQLEnum(UserLevel), default=UserLevel.FREE, nullable=False, comment="用户等级")
     credits = Column(Float, default=10.0, nullable=False, comment="当前余额")
     total_recharged = Column(Float, default=0.0, comment="累计充值金额")
-    invite_code_used = Column(String, comment="已使用的邀请码")
+    invite_code_used = Column(String, default=0.0, comment="当前使用的邀请码")
     status = Column(SQLEnum(UserStatus), default=UserStatus.ACTIVE, nullable=False, comment="账户状态")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_synced_at = Column(DateTime, comment="最后同步时间")
     
     # 关系
     recharge_records = relationship("RechargeRecord", back_populates="user")
@@ -73,11 +71,11 @@ class InviteCode(Base):
     code = Column(String, unique=True, nullable=False, index=True, comment="邀请码")
     target_level = Column(SQLEnum(UserLevel), default=UserLevel.PRO, nullable=False, comment="目标等级")
     max_usage = Column(Integer, comment="最大使用次数")
-    used_count = Column(Integer, default=0, nullable=False, comment="已使用次数")
     valid_from = Column(DateTime, comment="生效时间")
     valid_until = Column(DateTime, comment="失效时间")
     status = Column(String, default="active", comment="状态")
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关系
     usage_records = relationship("InviteCodeUsage", back_populates="invite_code")
@@ -92,7 +90,7 @@ class InviteCodeUsage(Base):
     __tablename__ = "invite_code_usage"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False)
     invite_code_id = Column(Integer, ForeignKey("invite_codes.id"), nullable=False)
     used_at = Column(DateTime, default=datetime.utcnow)
     
@@ -107,7 +105,7 @@ class RechargeRecord(Base):
     __tablename__ = "recharge_records"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False, index=True)
     amount = Column(Float, nullable=False, comment="充值金额")
     payment_method = Column(SQLEnum(PaymentMethod), nullable=False, comment="支付方式")
     payment_status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False, comment="支付状态")
@@ -128,7 +126,7 @@ class ConsumptionRecord(Base):
     __tablename__ = "consumption_records"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False, index=True)
     processing_record_id = Column(Integer, ForeignKey("processing_records.id"), nullable=False)
     service_type = Column(String, nullable=False, comment="服务类型")
     audio_duration = Column(Float, nullable=False, comment="音频时长(秒)")
@@ -150,7 +148,7 @@ class UserProcessingHistory(Base):
     __tablename__ = "user_processing_history"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("user_info.user_id"), nullable=False, index=True)
     processing_record_id = Column(Integer, ForeignKey("processing_records.id"))
     consumption_record_id = Column(Integer, ForeignKey("consumption_records.id"))
     original_filename = Column(String, nullable=False, comment="原始文件名")
