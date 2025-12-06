@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, distinct
+from sqlalchemy import select, func, distinct, text
 from app.database import get_db
 from app.models import User, ProcessingRecord
 import logging
@@ -48,46 +48,27 @@ async def get_processed_songs_count(db: AsyncSession = Depends(get_db)):
     统计 processing_records 表中 status 为 'completed' 的
     唯一 (file_hash, service_type, stems) 组合数量
     
-    说明：
-    - file_hash: 文件的唯一标识
-    - service_type: 服务类型 (piano/spleeter/yourmt3)
-    - stems: Spleeter 的音轨参数 (2/4/5)，其他服务为 NULL
-    
-    同一首歌使用不同服务或不同参数处理，算作不同的处理记录
+    使用原生 SQL 直接利用数据库的 COUNT(DISTINCT ...) 功能，性能最优
     """
     try:
-        # 统计 status='completed' 的唯一组合数量
-        # 使用 distinct 对 (file_hash, service_type, stems) 组合去重
-        query = select(
-            func.count(
-                distinct(
-                    ProcessingRecord.file_hash,
-                    ProcessingRecord.service_type,
-                    ProcessingRecord.stems
-                )
-            )
-        ).where(
-            ProcessingRecord.status == "completed"
-        )
+        # 方法1：使用原生 SQL（推荐，性能最好）
+        # PostgreSQL 支持 COUNT(DISTINCT (col1, col2, col3)) 语法
+        total_query = text("""
+            SELECT COUNT(DISTINCT (file_hash, service_type, stems))
+            FROM processing_records
+            WHERE status = 'completed'
+        """)
         
-        result = await db.execute(query)
+        result = await db.execute(total_query)
         count = result.scalar()
         
-        # 额外统计：按服务类型分组
-        breakdown_query = select(
-            ProcessingRecord.service_type,
-            func.count(
-                distinct(
-                    ProcessingRecord.file_hash,
-                    ProcessingRecord.service_type,
-                    ProcessingRecord.stems
-                )
-            ).label('count')
-        ).where(
-            ProcessingRecord.status == "completed"
-        ).group_by(
-            ProcessingRecord.service_type
-        )
+        # 按服务类型分组统计
+        breakdown_query = text("""
+            SELECT service_type, COUNT(DISTINCT (file_hash, service_type, stems)) as count
+            FROM processing_records
+            WHERE status = 'completed'
+            GROUP BY service_type
+        """)
         
         breakdown_result = await db.execute(breakdown_query)
         breakdown = {row.service_type: row.count for row in breakdown_result}
@@ -116,10 +97,7 @@ async def get_statistics_overview(db: AsyncSession = Depends(get_db)):
     """
     统计总览
     
-    返回所有关键统计数据：
-    - 用户数量
-    - 处理完成的歌曲数量
-    - 按服务类型分类的处理数量
+    返回所有关键统计数据，使用原生 SQL 优化性能
     """
     try:
         # 1. 统计用户数量
@@ -127,36 +105,22 @@ async def get_statistics_overview(db: AsyncSession = Depends(get_db)):
         user_result = await db.execute(user_query)
         total_users = user_result.scalar()
         
-        # 2. 统计处理完成的歌曲数量
-        songs_query = select(
-            func.count(
-                distinct(
-                    ProcessingRecord.file_hash,
-                    ProcessingRecord.service_type,
-                    ProcessingRecord.stems
-                )
-            )
-        ).where(
-            ProcessingRecord.status == "completed"
-        )
+        # 2. 统计处理完成的歌曲数量（原生 SQL）
+        songs_query = text("""
+            SELECT COUNT(DISTINCT (file_hash, service_type, stems))
+            FROM processing_records
+            WHERE status = 'completed'
+        """)
         songs_result = await db.execute(songs_query)
         total_processed = songs_result.scalar()
         
-        # 3. 按服务类型分组统计
-        breakdown_query = select(
-            ProcessingRecord.service_type,
-            func.count(
-                distinct(
-                    ProcessingRecord.file_hash,
-                    ProcessingRecord.service_type,
-                    ProcessingRecord.stems
-                )
-            ).label('count')
-        ).where(
-            ProcessingRecord.status == "completed"
-        ).group_by(
-            ProcessingRecord.service_type
-        )
+        # 3. 按服务类型分组统计（原生 SQL）
+        breakdown_query = text("""
+            SELECT service_type, COUNT(DISTINCT (file_hash, service_type, stems)) as count
+            FROM processing_records
+            WHERE status = 'completed'
+            GROUP BY service_type
+        """)
         breakdown_result = await db.execute(breakdown_query)
         breakdown = {row.service_type: row.count for row in breakdown_result}
         
