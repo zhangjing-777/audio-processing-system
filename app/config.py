@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     wechat_app_id: str 
     wechat_mch_id: str 
     wechat_api_key: str 
+    wechat_notify_url: str
     # wechat_cert_path: str 
     # wechat_key_path: str 
     

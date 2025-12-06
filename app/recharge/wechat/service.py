@@ -17,10 +17,11 @@ class WechatPayService:
         self.app_id = settings.wechat_app_id
         self.mch_id = settings.wechat_mch_id
         self.api_key = settings.wechat_api_key
-        self.notify_url = f"{settings.app_name}/api/recharge/wechat/callback"
+        self.notify_url = settings.wechat_notify_url
         self.unified_order_url = "https://api.mch.weixin.qq.com/pay/unifiedorder"
         
         logger.info(f"WechatPayService 初始化完成")
+        logger.info(f"微信支付回调地址: {self.notify_url}") 
     
     def _generate_sign(self, params: Dict[str, str]) -> str:
         """

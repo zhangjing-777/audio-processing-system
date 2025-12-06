@@ -13,6 +13,7 @@ from app.services.yourmt3.router import router as yourmt3_router
 from app.recharge.stripe_router import router as stripe_router
 from app.recharge.wechat.router import router as wechat_router
 from app.invite_code.router import router as code_router
+from app.statistics.router import router as stat_router
 
 # 配置日志
 logging.basicConfig(
@@ -113,6 +114,7 @@ app.include_router(yourmt3_router)
 app.include_router(code_router)
 app.include_router(stripe_router)
 app.include_router(wechat_router)
+app.include_router(stat_router)
 
 
 @app.get("/")

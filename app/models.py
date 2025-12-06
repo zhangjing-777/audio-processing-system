@@ -49,7 +49,7 @@ class User(Base):
     user_level = Column(SQLEnum(UserLevel), default=UserLevel.FREE, nullable=False, comment="用户等级")
     credits = Column(Float, default=10.0, nullable=False, comment="当前余额")
     total_recharged = Column(Float, default=0.0, comment="累计充值金额")
-    invite_code_used = Column(String, default=0.0, comment="当前使用的邀请码")
+    invite_code_used = Column(String, default=None, comment="当前使用的邀请码")
     status = Column(SQLEnum(UserStatus), default=UserStatus.ACTIVE, nullable=False, comment="账户状态")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -158,6 +158,8 @@ class UseInviteCodeResponse(BaseModel):
 class RechargeRequest(BaseModel):
     amount: float = Field(..., gt=0, description="充值金额")
 
+class StripeRechargeRequest(BaseModel):
+    price_id: str = Field(..., description="Stripe Price ID")
 
 class StripeSessionResponse(BaseModel):
     session_url: str
